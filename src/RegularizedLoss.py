@@ -37,21 +37,42 @@ class RegularizedLoss:
         self.Ahat.requires_grad = False
 
         if phi == 'squared_error': 
-
             def phi(Z):
                 #Define the squared error phi function.
-
                 #Remove the Z values of the not isolated values.
                 Z = Z[self.not_isolated, :]
 
+                #Calculate the "averaging" of the neighborhood.
                 Zprime = torch.matmul(self.Ahat, Z)
-
                 return 0.5 * (torch.norm(Zprime - Z, p=2, dim=1)**2).sum()
 
-            self.phi = lambda Z : phi(Z)
+        elif phi == 'cross_entropy':
+            def phi(Z):
+                #Define the cross entropy phi function.
+                Z = Z[self.not_isolated, :]
+                P = torch.softmax(Z, dim=1)
+                
+                #Calculate the "averaging" of the neighborhood.
+                Zprime = torch.matmul(self.Ahat, Z)
+                Q = torch.softmax(self.Ahat, Zprime)
+                return - (P * torch.log(Q)).sum()
 
+        elif phi == 'KL_divergence':
+            def phi(Z):
+                #Define the KL divergence phi function
+                Z = Z[self.not_isolated, :]
+                P = torch.softmax(Z, dim=1)
+                
+                #Calculate the "averaging" of the neighborhood.
+                Zprime = torch.matmul(self.Ahat, Z)
+                Q = torch.softmax(self.Ahat, Zprime)
+
+                return (P * torch.log(P / Q)).sum()
+                
         else:
             raise NotImplementedError()
+
+        self.phi = lambda Z : phi(Z)
 
         #Use the CrossEntropyLoss. 
         self.cross_entropy = torch.nn.CrossEntropyLoss()

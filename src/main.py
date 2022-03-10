@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--epochs', default=200, type=int)
-
+    parser.add_argument('--phi', default='squared_error', type=str, choices=['squared_error', 'cross_entropy', 'KL_divergence'])
     parser.add_argument('--mu', default=0.0, type=float)
 
     #Specify A and B arguments for the split values.
