@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-def get_masks(A,B,dataset):
+def get_masks(A,B,dataset,seed=0):
     N = dataset.data.num_nodes
     y = dataset.data.y
     C = dataset.num_classes
@@ -14,10 +14,13 @@ def get_masks(A,B,dataset):
     train_mask = torch.Tensor([False]).repeat(N) 
     val_mask = torch.Tensor([False]).repeat(N)
     test_mask = torch.Tensor([False]).repeat(N)
-
+    
     for i in range(C):
-        num_in_class = (y == i).sum()
-        train_mask[torch.where((y == i))[0][:A]] = True
-        val_mask[torch.where((y == i))[0][A:A+B]] = True
-        test_mask[torch.where((y == i))[0][A+B:num_in_class]] = True
+        class_idx = np.argwhere((y==i).numpy()).flatten()
+        np.random.seed(seed)
+        np.random.shuffle(class_idx)
+
+        train_mask[class_idx[:A]] = True
+        val_mask[class_idx[A:A+B]] = True
+        test_mask[class_idx[A+B:len(class_idx)]] = True
     return train_mask.bool(), val_mask.bool(), test_mask.bool()
