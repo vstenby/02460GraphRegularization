@@ -16,6 +16,7 @@ def main():
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--epochs', default=200, type=int)
+    parser.add_argument('--mu', default=0.0, type=float)
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -24,6 +25,7 @@ def main():
     args = parser.parse_args()
 
     assert (args.A is None and args.B is None) or (args.A is not None and args.B is not None), 'A and B should be either given or not given'
+
     #Fetch the dataset.
     if args.dataset.lower() == 'cora':  
         dataset = Planetoid(root=f'/tmp/Cora', name='Cora')
@@ -43,18 +45,17 @@ def main():
     else:
         train_mask, val_mask, test_mask = data.train_mask, data.val_mask, data.test_mask
 
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
-    loss_fn = RegularizedLoss(phi = 'squared_error', mu = 0, edge_index = data.edge_index, train_mask = data.train_mask)
+    loss_fn = RegularizedLoss(phi = 'squared_error', mu = args.mu, edge_index = data.edge_index, train_mask = train_mask)
     model.train()
     for epoch in range(200):
         optimizer.zero_grad()
         out = model(data)
-        
         loss = loss_fn(out, data.y)
-        
         loss.backward()
         optimizer.step()
 
@@ -78,6 +79,7 @@ def main():
         test_acc = accuracy_score(y_true = data.y[test_mask], y_pred = pred[test_mask])
 
     #TODO: Log it right here!
+    print(test_acc)
 
 if __name__ == '__main__':
     main()
