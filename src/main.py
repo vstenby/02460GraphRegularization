@@ -82,25 +82,24 @@ def main():
         test_acc = accuracy_score(y_true = data.y[test_mask], y_pred = pred[test_mask])
 
     #TODO: Log it right here!
-    print(test_acc)
-    if False:
-        wandb.log({"dataset": args.dataset,
-                    "learning rate": args.lr,
-                    "weight-decay": args.weight_decay,
-                    "epochs": args.epochs,
-                    "seed": args.seed,
-                    "A": args.A,
-                    "B": args.B,
-                    "train_rms": train_rms,
-                    "train_roc_auc_score": train_roc_auc_score,
-                    "train_acc": train_acc,
-                    "val_rms": val_rms,
-                    "val_roc_auc_score": val_roc_auc_score,
-                    "val_acc": val_acc,
-                    "test_rms": test_rms,
-                    "test_roc_auc_score": test_roc_auc_score,
-                    "test_acc": test_acc})
+
+    wandb.log({"dataset": args.dataset,
+                "learning rate": args.lr,
+                "epochs": args.epochs,
+                "mu": args.mu,
+                "seed": args.seed,
+                "A": args.A,
+                "B": args.B,
+                "train_rms": train_rms,
+                "train_roc_auc_score": train_roc_auc_score,
+                "train_acc": train_acc,
+                "val_rms": val_rms,
+                "val_roc_auc_score": val_roc_auc_score,
+                "val_acc": val_acc,
+                "test_rms": test_rms,
+                "test_roc_auc_score": test_roc_auc_score,
+                "test_acc": test_acc})
 
 if __name__ == '__main__':
-    #wandb.init(project="02460AdvancedML", entity="rasgaard")
+    wandb.init(project="02460AdvancedML", entity="rasgaard")
     main()
