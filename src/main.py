@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--phi', default='squared_error', type=str, choices=['squared_error', 'cross_entropy', 'KL_divergence'])
     parser.add_argument('--mu', default=0.0, type=float)
     parser.add_argument('--sweep', default=0, type=int)
+    parser.add_argument('--beta', default=0, type=float)
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -62,7 +63,17 @@ def main():
     for epoch in range(args.epochs):
         optimizer.zero_grad()
         out = model(data)
-        loss = loss_fn(out, data.y)
+
+        if args.beta == 0:
+            conf_penalty = 0
+        else:
+            #Confidence penalization from the blackboard:
+            #loss = loss - beta*H(P), where H(P) = - \sum_{i=1}^{N} \sum_{j=1}^{C} P_{ij} log P_{ij}
+            P = torch.softmax(out, dim=1)
+            conf_penalty = (-1.0) * (P * torch.log(P)).sum()
+
+        loss = loss_fn(out, data.y) - args.beta * conf_penalty
+
         loss.backward()
         optimizer.step()
 
