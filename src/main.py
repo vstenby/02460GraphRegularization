@@ -20,12 +20,16 @@ def main():
     parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--phi', default='squared_error', type=str, choices=['squared_error', 'cross_entropy', 'KL_divergence'])
     parser.add_argument('--mu', default=0.0, type=float)
+    parser.add_argument('--sweep', default=0, type=int)
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
     parser.add_argument('--B', default=None, type=int)
 
     args = parser.parse_args()
+
+    if args.sweep:
+        wandb.init(project="02460AdvancedML", entity="rasgaard")
 
     assert (args.A is None and args.B is None) or (args.A is not None and args.B is not None), 'A and B should be either given or not given'
 
@@ -83,23 +87,25 @@ def main():
 
     #TODO: Log it right here!
 
-    wandb.log({"dataset": args.dataset,
-                "learning rate": args.lr,
-                "epochs": args.epochs,
-                "mu": args.mu,
-                "seed": args.seed,
-                "A": args.A,
-                "B": args.B,
-                "train_rms": train_rms,
-                "train_roc_auc_score": train_roc_auc_score,
-                "train_acc": train_acc,
-                "val_rms": val_rms,
-                "val_roc_auc_score": val_roc_auc_score,
-                "val_acc": val_acc,
-                "test_rms": test_rms,
-                "test_roc_auc_score": test_roc_auc_score,
-                "test_acc": test_acc})
+    if args.sweep:
+        wandb.log({"dataset": args.dataset,
+                    "learning rate": args.lr,
+                    "epochs": args.epochs,
+                    "mu": args.mu,
+                    "seed": args.seed,
+                    "A": args.A,
+                    "B": args.B,
+                    "train_rms": train_rms,
+                    "train_roc_auc_score": train_roc_auc_score,
+                    "train_acc": train_acc,
+                    "val_rms": val_rms,
+                    "val_roc_auc_score": val_roc_auc_score,
+                    "val_acc": val_acc,
+                    "test_rms": test_rms,
+                    "test_roc_auc_score": test_roc_auc_score,
+                    "test_acc": test_acc})
+    else:
+        print(f'Test RMSE: {test_rms} | Test ROC-AUC-Score: {test_roc_auc_score} | Test Acc: {test_acc}')
 
 if __name__ == '__main__':
-    wandb.init(project="02460AdvancedML", entity="rasgaard")
     main()
