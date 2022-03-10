@@ -4,6 +4,7 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.datasets import Planetoid
 from sklearn.metrics import mean_squared_error, roc_auc_score, accuracy_score
+import wandb
 
 from GCN import GCN
 from RegularizedLoss import RegularizedLoss
@@ -12,10 +13,12 @@ from get_masks import get_masks
 def main():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--dataset', type=str, choices=['Cora', 'CiteSeer', 'PubMed'])
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--epochs', default=200, type=int)
+
     parser.add_argument('--mu', default=0.0, type=float)
 
     #Specify A and B arguments for the split values.
@@ -41,18 +44,18 @@ def main():
 
     if args.A is not None:
         #Then args.B is not none either.
-        train_mask, val_mask, test_mask = get_masks(args.A, args.B, dataset)
+        train_mask, val_mask, test_mask = get_masks(args.A, args.B, dataset, args.seed)
     else:
         train_mask, val_mask, test_mask = data.train_mask, data.val_mask, data.test_mask
-
-
+    
+    torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
     loss_fn = RegularizedLoss(phi = 'squared_error', mu = args.mu, edge_index = data.edge_index, train_mask = train_mask)
     model.train()
-    for epoch in range(200):
+    for epoch in range(args.epochs):
         optimizer.zero_grad()
         out = model(data)
         loss = loss_fn(out, data.y)
@@ -80,6 +83,24 @@ def main():
 
     #TODO: Log it right here!
     print(test_acc)
+    if False:
+        wandb.log({"dataset": args.dataset,
+                    "learning rate": args.lr,
+                    "weight-decay": args.weight_decay,
+                    "epochs": args.epochs,
+                    "seed": args.seed,
+                    "A": args.A,
+                    "B": args.B,
+                    "train_rms": train_rms,
+                    "train_roc_auc_score": train_roc_auc_score,
+                    "train_acc": train_acc,
+                    "val_rms": val_rms,
+                    "val_roc_auc_score": val_roc_auc_score,
+                    "val_acc": val_acc,
+                    "test_rms": test_rms,
+                    "test_roc_auc_score": test_roc_auc_score,
+                    "test_acc": test_acc})
 
 if __name__ == '__main__':
+    #wandb.init(project="02460AdvancedML", entity="rasgaard")
     main()
