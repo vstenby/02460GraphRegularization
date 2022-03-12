@@ -21,6 +21,10 @@ def get_masks(A,B,dataset,seed=0):
         np.random.shuffle(class_idx)
 
         train_mask[class_idx[:A]] = True
-        val_mask[class_idx[A:A+B]] = True
+
+        #If B = 0, then we don't care about a val set.
+        if B != 0:
+            val_mask[class_idx[A:A+B]] = True
+
         test_mask[class_idx[A+B:len(class_idx)]] = True
     return train_mask.bool(), val_mask.bool(), test_mask.bool()

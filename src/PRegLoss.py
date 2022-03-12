@@ -1,32 +1,26 @@
 import torch
 import torch_geometric.utils as utils
 
-class RegularizedLoss:
+class PRegLoss:
     '''
-    Used to calculate the regularized loss.
-
-    Inputs:
-        edge_index, edge index of the graph.
-        train_mask, train indices that should be used for the training loss.
-
+    Calculate the P-Reg loss as defined in "Rethinking Graph Regularisation for Graph Neural Networks"
     '''
-    
-    def __init__(self, phi, mu, edge_index, train_mask):
 
-        #Set the value of mu.   
-        self.mu = mu
+    def __init__(self, phi, edge_index):
+        '''
+        Input:
+            phi, either 'squared_error', 'cross_entropy' or 'KL_divergence'
+            edge_index, used to construct the adjacency matrix and the diagonal degree matrix.
+        '''
 
-        #Set the train mask.
-        self.train_mask = train_mask
-
-        #Find the indices of the not isolated nodes.
         self.not_isolated = utils.degree(edge_index[0]) > 0
 
         #Calculate the adjacency matrix.
         A = utils.to_dense_adj(edge_index).squeeze(0)
         A = A[self.not_isolated, :][:, self.not_isolated]
-        
-        #Set N, the number of nodes in the graph.
+
+        #Not sure whether or not N is the number of nodes,
+        #or the number of isolated nodes. Probably doesn't matter.
         self.N = len(self.not_isolated)
 
         #Calculate the degree matrix, https://github.com/pyg-team/pytorch_geometric/issues/1261#issuecomment-633913984
@@ -72,20 +66,13 @@ class RegularizedLoss:
         else:
             raise NotImplementedError()
 
+        #Set phi accordingly.
         self.phi = lambda Z : phi(Z)
 
-        #Use the CrossEntropyLoss. 
-        self.cross_entropy = torch.nn.CrossEntropyLoss()
-
-    def __call__(self, Z, y):
+    def __call__(self, Z):
         '''
         Evaluate the loss function. 
         '''
-        N = len(y)
-        
-        L1 = self.cross_entropy(Z[self.train_mask], y[self.train_mask])
-
+    
         #Equation (2) in the paper. 
-        L2 = self.mu * 1/self.N * self.phi(Z)
-
-        return L1 + self.mu * L2
+        return 1/self.N * self.phi(Z)

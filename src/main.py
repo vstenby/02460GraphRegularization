@@ -7,8 +7,8 @@ from sklearn.metrics import mean_squared_error, roc_auc_score, accuracy_score
 import wandb
 
 from GCN import GCN
-from RegularizedLoss import RegularizedLoss
 from get_masks import get_masks
+from PRegLoss import PRegLoss
 
 def main():
     parser = argparse.ArgumentParser()
@@ -58,7 +58,9 @@ def main():
     model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
-    loss_fn = RegularizedLoss(phi = 'squared_error', mu = args.mu, edge_index = data.edge_index, train_mask = train_mask)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index)
+
     model.train()
     for epoch in range(args.epochs):
         optimizer.zero_grad()
@@ -72,8 +74,7 @@ def main():
             P = torch.softmax(out, dim=1)
             conf_penalty = (-1.0) * (P * torch.log(P)).sum()
 
-        loss = loss_fn(out, data.y) - args.beta * conf_penalty
-
+        loss = loss_fn(out[train_mask], data.y[train_mask]) + args.mu * preg_loss_fn(out) - args.beta * conf_penalty
         loss.backward()
         optimizer.step()
 
@@ -88,9 +89,14 @@ def main():
         train_roc_auc_score = roc_auc_score(y_true = data.y[train_mask], y_score = score[train_mask, :], multi_class='ovr')
         train_acc = accuracy_score(y_true = data.y[train_mask], y_pred = pred[train_mask])
 
-        val_rms = mean_squared_error(y_true = data.y[val_mask], y_pred = pred[val_mask], squared=False)
-        val_roc_auc_score = roc_auc_score(y_true = data.y[val_mask], y_score = score[val_mask, :], multi_class='ovr')
-        val_acc = accuracy_score(y_true = data.y[val_mask], y_pred = pred[val_mask])
+        if args.B != 0:
+            val_rms = mean_squared_error(y_true = data.y[val_mask], y_pred = pred[val_mask], squared=False)
+            val_roc_auc_score = roc_auc_score(y_true = data.y[val_mask], y_score = score[val_mask, :], multi_class='ovr')
+            val_acc = accuracy_score(y_true = data.y[val_mask], y_pred = pred[val_mask])
+        else:
+            val_rms           = None
+            val_roc_auc_score = None
+            val_acc           = None
 
         test_rms = mean_squared_error(y_true = data.y[test_mask], y_pred = pred[test_mask], squared=False)
         test_roc_auc_score = roc_auc_score(y_true = data.y[test_mask], y_score = score[test_mask, :], multi_class='ovr')
