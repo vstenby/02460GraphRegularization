@@ -6,7 +6,7 @@ class PRegLoss:
     Calculate the P-Reg loss as defined in "Rethinking Graph Regularisation for Graph Neural Networks"
     '''
 
-    def __init__(self, phi, edge_index):
+    def __init__(self, phi, edge_index, device):
         '''
         Input:
             phi, either 'squared_error', 'cross_entropy' or 'KL_divergence'
@@ -30,6 +30,8 @@ class PRegLoss:
         self.Ahat = torch.linalg.solve(D, A)
         self.Ahat.requires_grad = False
 
+        self.device = device
+
         if phi == 'squared_error': 
             def phi(Z):
                 #Define the squared error phi function.
@@ -37,7 +39,7 @@ class PRegLoss:
                 Z = Z[self.not_isolated, :]
 
                 #Calculate the "averaging" of the neighborhood.
-                Zprime = torch.matmul(self.Ahat, Z)
+                Zprime = torch.matmul(self.Ahat.to(device), Z.to(device))
                 return 0.5 * (torch.norm(Zprime - Z, p=2, dim=1)**2).sum()
 
         elif phi == 'cross_entropy':
@@ -47,8 +49,8 @@ class PRegLoss:
                 P = torch.softmax(Z, dim=1)
                 
                 #Calculate the "averaging" of the neighborhood.
-                Zprime = torch.matmul(self.Ahat, Z)
-                Q = torch.softmax(self.Ahat, Zprime)
+                Zprime = torch.matmul(self.Ahat.to(device), Z.to(device))
+                Q = torch.softmax(self.Ahat, dim=1)
                 return - (P * torch.log(Q)).sum()
 
         elif phi == 'KL_divergence':
@@ -59,7 +61,7 @@ class PRegLoss:
                 
                 #Calculate the "averaging" of the neighborhood.
                 Zprime = torch.matmul(self.Ahat, Z)
-                Q = torch.softmax(self.Ahat, Zprime)
+                Q = torch.softmax(self.Ahat.to(device), Zprime.to(device))
 
                 return (P * torch.log(P / Q)).sum()
                 

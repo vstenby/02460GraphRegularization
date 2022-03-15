@@ -34,7 +34,8 @@ def main():
 
     assert (args.A is None and args.B is None) or (args.A is not None and args.B is not None), 'A and B should be either given or not given'
 
-    #Fetch the dataset.
+    assert args.dataset is not None, 'Dataset should not be None.'
+
     if args.dataset.lower() == 'cora':  
         dataset = Planetoid(root=f'/tmp/Cora', name='Cora')
     elif args.dataset.lower() == 'citeseer':
@@ -55,16 +56,18 @@ def main():
     
     torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'Running on {device}.')
+
     model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
     loss_fn = torch.nn.CrossEntropyLoss()
-    preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index)
+    preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index, device=device)
 
     model.train()
     for epoch in range(args.epochs):
         optimizer.zero_grad()
-        out = model(data)
+        out = model(data.to(device))
 
         if args.beta == 0:
             conf_penalty = 0
@@ -85,25 +88,24 @@ def main():
         score = torch.softmax(out, dim=1)
 
         #RMSE is calculated as seen here: https://stackoverflow.com/a/18623635/17389949
-        train_rms = mean_squared_error(y_true = data.y[train_mask], y_pred = pred[train_mask], squared=False)
-        train_roc_auc_score = roc_auc_score(y_true = data.y[train_mask], y_score = score[train_mask, :], multi_class='ovr')
-        train_acc = accuracy_score(y_true = data.y[train_mask], y_pred = pred[train_mask])
+        train_rms = mean_squared_error(y_true = data.y[train_mask].cpu(), y_pred = pred[train_mask].cpu(), squared=False)
+        train_roc_auc_score = roc_auc_score(y_true = data.y[train_mask].cpu(), y_score = score[train_mask, :].cpu(), multi_class='ovr')
+        train_acc = accuracy_score(y_true = data.y[train_mask].cpu(), y_pred = pred[train_mask].cpu())
 
         if args.B != 0:
-            val_rms = mean_squared_error(y_true = data.y[val_mask], y_pred = pred[val_mask], squared=False)
-            val_roc_auc_score = roc_auc_score(y_true = data.y[val_mask], y_score = score[val_mask, :], multi_class='ovr')
-            val_acc = accuracy_score(y_true = data.y[val_mask], y_pred = pred[val_mask])
+            val_rms = mean_squared_error(y_true = data.y[val_mask].cpu(), y_pred = pred[val_mask].cpu(), squared=False)
+            val_roc_auc_score = roc_auc_score(y_true = data.y[val_mask].cpu(), y_score = score[val_mask, :].cpu(), multi_class='ovr')
+            val_acc = accuracy_score(y_true = data.y[val_mask].cpu(), y_pred = pred[val_mask].cpu())
         else:
             val_rms           = None
             val_roc_auc_score = None
             val_acc           = None
 
-        test_rms = mean_squared_error(y_true = data.y[test_mask], y_pred = pred[test_mask], squared=False)
-        test_roc_auc_score = roc_auc_score(y_true = data.y[test_mask], y_score = score[test_mask, :], multi_class='ovr')
-        test_acc = accuracy_score(y_true = data.y[test_mask], y_pred = pred[test_mask])
+        test_rms = mean_squared_error(y_true = data.y[test_mask].cpu(), y_pred = pred[test_mask].cpu(), squared=False)
+        test_roc_auc_score = roc_auc_score(y_true = data.y[test_mask].cpu(), y_score = score[test_mask, :].cpu(), multi_class='ovr')
+        test_acc = accuracy_score(y_true = data.y[test_mask].cpu(), y_pred = pred[test_mask].cpu())
 
     #TODO: Log it right here!
-
     if args.sweep:
         wandb.log({"dataset": args.dataset,
                     "learning rate": args.lr,
