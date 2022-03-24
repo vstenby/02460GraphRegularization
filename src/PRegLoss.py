@@ -60,8 +60,8 @@ class PRegLoss:
                 P = torch.softmax(Z, dim=1)
                 
                 #Calculate the "averaging" of the neighborhood.
-                Zprime = torch.matmul(self.Ahat, Z)
-                Q = torch.softmax(self.Ahat.to(device), Zprime.to(device))
+                Zprime = torch.matmul(self.Ahat.to(device), Z)
+                Q = torch.softmax(Zprime, dim=1)
 
                 return (P * torch.log(P / Q)).sum()
                 

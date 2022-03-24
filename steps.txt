@@ -31,7 +31,7 @@ pip install torch==1.11.0
 
 pip install numpy
 
-Follow the "Installation via Pip Wheels" guide here, i.e type the lines below for torch 1.11.0 and the CPU.
+Follow the "Installation via Pip Wheels" guide here, i.e type the lines below for torch 1.11.0 and the GPU.
 https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 
 pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cu102.html
