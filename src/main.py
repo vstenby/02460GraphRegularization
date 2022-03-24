@@ -9,6 +9,7 @@ import wandb
 from GCN import GCN
 from get_masks import get_masks
 from PRegLoss import PRegLoss
+from conf_penalty import conf_penalty
 
 def main():
     parser = argparse.ArgumentParser()
@@ -67,18 +68,15 @@ def main():
     model.train()
     for epoch in range(args.epochs):
         optimizer.zero_grad()
-        out = model(data.to(device))
+        out = model(data.to(device)) #Z
 
-        if args.beta == 0:
-            conf_penalty = 0
-        else:
-            #Confidence penalization from the blackboard:
-            #loss = loss - beta*H(P), where H(P) = - \sum_{i=1}^{N} \sum_{j=1}^{C} P_{ij} log P_{ij}
-            P = torch.softmax(out, dim=1)
-            conf_penalty = (-1.0) * (P * torch.log(P)).sum()
+        #Calculate the loss, which is the CrossEntropy for the training, \mu and the P-reg loss as well as the confidence penalty term.
+        loss = loss_fn(out[train_mask], data.y[train_mask]) + args.mu * preg_loss_fn(out) - args.beta * conf_penalty(out)
 
-        loss = loss_fn(out[train_mask], data.y[train_mask]) + args.mu * preg_loss_fn(out) - args.beta * conf_penalty
+        #Backpropagate 
         loss.backward()
+
+        #Take a step with the optimizer.
         optimizer.step()
 
     with torch.no_grad():
@@ -105,16 +103,9 @@ def main():
         test_roc_auc_score = roc_auc_score(y_true = data.y[test_mask].cpu(), y_score = score[test_mask, :].cpu(), multi_class='ovr')
         test_acc = accuracy_score(y_true = data.y[test_mask].cpu(), y_pred = pred[test_mask].cpu())
 
-    #TODO: Log it right here!
+    #Log it right here!
     if args.sweep:
-        wandb.log({"dataset": args.dataset,
-                    "learning rate": args.lr,
-                    "epochs": args.epochs,
-                    "mu": args.mu,
-                    "seed": args.seed,
-                    "A": args.A,
-                    "B": args.B,
-                    "train_rms": train_rms,
+        wandb.log({ "train_rms": train_rms,
                     "train_roc_auc_score": train_roc_auc_score,
                     "train_acc": train_acc,
                     "val_rms": val_rms,
