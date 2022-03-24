@@ -50,7 +50,7 @@ class PRegLoss:
                 
                 #Calculate the "averaging" of the neighborhood.
                 Zprime = torch.matmul(self.Ahat.to(device), Z.to(device))
-                Q = torch.softmax(self.Ahat, dim=1)
+                Q = torch.softmax(Zprime, dim=1)
                 return - (P * torch.log(Q)).sum()
 
         elif phi == 'KL_divergence':
