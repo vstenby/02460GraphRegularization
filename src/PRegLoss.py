@@ -63,8 +63,10 @@ class PRegLoss:
                 Zprime = torch.matmul(self.Ahat.to(device), Z)
                 Q = torch.softmax(Zprime, dim=1)
 
-                return (P * torch.log(P / Q)).sum()
-                
+                logP = torch.log(P)
+                logQ = torch.log(Q)
+                return (P * torch.exp(logP - logQ)).sum()
+
         else:
             raise NotImplementedError()
 
