@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--mu', default=0.0, type=float)
     parser.add_argument('--sweep', default=0, type=int)
     parser.add_argument('--beta', default=0, type=float)
+    parser.add_argument('--tau', default=0, type=float, help='p-reg thresholding')
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -71,7 +72,8 @@ def main():
         out = model(data.to(device)) #Z
 
         #Calculate the loss, which is the CrossEntropy for the training, \mu and the P-reg loss as well as the confidence penalty term.
-        loss = loss_fn(out[train_mask], data.y[train_mask]) + args.mu * preg_loss_fn(out) - args.beta * conf_penalty(out)
+        #torch.maximum for tau > 0, C.2: Thresholding of P-reg
+        loss = loss_fn(out[train_mask], data.y[train_mask]) + args.mu * torch.maximum(torch.tensor([0]), preg_loss_fn(out) - args.tau) - args.beta * conf_penalty(out)
 
         #Backpropagate 
         loss.backward()
