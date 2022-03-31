@@ -19,12 +19,14 @@ def main():
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--epochs', default=200, type=int)
-    parser.add_argument('--phi', default='squared_error', type=str, choices=['squared_error', 'cross_entropy', 'KL_divergence'])
+    parser.add_argument('--phi', default='cross_entropy', type=str, choices=['cross_entropy', 'squared_error', 'KL_divergence'])
     parser.add_argument('--mu', default=0.0, type=float)
     parser.add_argument('--sweep', default=0, type=int)
     parser.add_argument('--beta', default=0, type=float)
     parser.add_argument('--tau', default=0, type=float, help='p-reg thresholding')
-
+    parser.add_argument('--unmask-alpha', default=1, type=float, help='value of alpha for the unmasking. 1 means p-reg is applied to all nodes, 0 means p-reg is applied to no nodes.')
+    parser.add_argument('--unmask-random-nodes-every-call', default=1, type=int, choices=[0, 1])
+    
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
     parser.add_argument('--B', default=None, type=int)
@@ -55,6 +57,9 @@ def main():
         train_mask, val_mask, test_mask = get_masks(args.A, args.B, dataset, args.seed)
     else:
         train_mask, val_mask, test_mask = data.train_mask, data.val_mask, data.test_mask
+
+    #Create the unmask dictionary. 
+    unmask_dict = {'alpha' : args.unmask_alpha, 'random_nodes_every_call' : args.unmask_random_nodes_every_call, 'seed' : args.seed}
     
     torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -64,7 +69,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
     loss_fn = torch.nn.CrossEntropyLoss()
-    preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index, device=device)
+    preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index, unmask_dict=unmask_dict, device=device)
 
     model.train()
     for epoch in range(args.epochs):
