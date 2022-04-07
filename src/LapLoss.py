@@ -10,5 +10,5 @@ class LapLoss:
         Zfrom = Z[self.edge_index[0,:], ]
         Zto   = Z[self.edge_index[1,:], ]
 
-        return (torch.norm(Zfrom - Zto, p=2, dim=1)**2).sum()
+        return 1/Zfrom.shape[0] * (torch.norm(Zfrom - Zto, p=2, dim=1)**2).sum()
 

@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--phi', default='cross_entropy', type=str, choices=['cross_entropy', 'squared_error', 'KL_divergence'])
     parser.add_argument('--mu', default=0.0, type=float)
     parser.add_argument('--sweep', default=0, type=int)
-    parser.add_argument('--beta', default=0, type=float)
+    parser.add_argument('--beta', default=0, type=float, help='conf penalty parameter.')
     parser.add_argument('--tau', default=0, type=float, help='p-reg thresholding')
     parser.add_argument('--unmask-alpha', default=1, type=float, help='value of alpha for the unmasking. 1 means p-reg is applied to all nodes, 0 means p-reg is applied to no nodes.')
     parser.add_argument('--unmask-random-nodes-every-call', default=1, type=int, choices=[0, 1])
