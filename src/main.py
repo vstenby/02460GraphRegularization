@@ -6,7 +6,10 @@ from torch_geometric.datasets import Planetoid
 from sklearn.metrics import mean_squared_error, roc_auc_score, accuracy_score
 import wandb
 
+#Import different models.
 from GCN import GCN
+from GAT import GAT
+
 from get_masks import get_masks
 from PRegLoss import PRegLoss
 from conf_penalty import conf_penalty
@@ -30,6 +33,7 @@ def main():
     parser.add_argument('--unmask-random-nodes-every-call', default=1, type=int, choices=[0, 1])
     parser.add_argument('--kappa', default=0, type=float, help='Laplacian reg weight')
     parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
+    parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT'])
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -70,7 +74,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running on {device}.')
 
-    model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+    if args.model == 'GCN':
+        model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+    elif args.model == 'GAT':
+        model = GAT(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
     loss_fn = torch.nn.CrossEntropyLoss()
