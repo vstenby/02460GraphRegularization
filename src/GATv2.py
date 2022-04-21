@@ -10,10 +10,10 @@ class GATv2(torch.nn.Module):
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-
+        x = F.dropout(x, p=0.6, training=self.training)
         x = self.gcn1(x, edge_index)
         x = F.elu(x)
-        x = F.dropout(x, training=self.training)
+        x = F.dropout(x, p=0.6, training=self.training)
         x = self.gcn2(x, edge_index)
 
         return x
