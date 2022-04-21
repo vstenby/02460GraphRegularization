@@ -11,6 +11,7 @@ from get_masks import get_masks
 from PRegLoss import PRegLoss
 from conf_penalty import conf_penalty
 from LapLoss import LapLoss
+from label_smoothing import label_smoothing
 
 def main():
     parser = argparse.ArgumentParser()
@@ -28,6 +29,7 @@ def main():
     parser.add_argument('--unmask-alpha', default=1, type=float, help='value of alpha for the unmasking. 1 means p-reg is applied to all nodes, 0 means p-reg is applied to no nodes.')
     parser.add_argument('--unmask-random-nodes-every-call', default=1, type=int, choices=[0, 1])
     parser.add_argument('--kappa', default=0, type=float, help='Laplacian reg weight')
+    parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -53,6 +55,7 @@ def main():
 
     #Unpack the dataset to get the data.
     data = dataset[0]
+    C = data.y.unique().size()[0]
 
     if args.A is not None:
         #Then args.B is not none either.
@@ -80,7 +83,7 @@ def main():
 
         #Calculate the loss, which is the CrossEntropy for the training, \mu and the P-reg loss as well as the confidence penalty term.
         #torch.maximum for tau > 0, C.2: Thresholding of P-reg
-        loss = loss_fn(out[train_mask], data.y[train_mask]) \
+        loss = loss_fn(out[train_mask], label_smoothing(data.y[train_mask], C, args.epsilon) ) \
              + args.mu * torch.maximum(torch.tensor([0]).to(device), preg_loss_fn(out) - args.tau)\
              + args.kappa * lap_loss_fn(out)\
              - args.beta * conf_penalty(out)
