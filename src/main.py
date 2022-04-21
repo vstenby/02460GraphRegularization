@@ -9,6 +9,7 @@ import wandb
 #Import different models.
 from GCN import GCN
 from GAT import GAT
+from GATv2 import GATv2
 
 from get_masks import get_masks
 from PRegLoss import PRegLoss
@@ -23,17 +24,17 @@ def main():
     parser.add_argument('--dataset', type=str, choices=['Cora', 'CiteSeer', 'PubMed'])
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
-    parser.add_argument('--epochs', default=200, type=int)
+    parser.add_argument('--epochs', default=200, type=int, help='Number of epochs to train.')
     parser.add_argument('--phi', default='cross_entropy', type=str, choices=['cross_entropy', 'squared_error', 'KL_divergence'])
-    parser.add_argument('--mu', default=0.0, type=float)
-    parser.add_argument('--sweep', default=0, type=int)
+    parser.add_argument('--mu', default=0.0, type=float, help='regularisation weight for the p-reg loss')
+    parser.add_argument('--sweep', default=0, type=int, help='whether or not to do a WandB sweep.')
     parser.add_argument('--beta', default=0, type=float, help='conf penalty parameter.')
     parser.add_argument('--tau', default=0, type=float, help='p-reg thresholding')
     parser.add_argument('--unmask-alpha', default=1, type=float, help='value of alpha for the unmasking. 1 means p-reg is applied to all nodes, 0 means p-reg is applied to no nodes.')
     parser.add_argument('--unmask-random-nodes-every-call', default=1, type=int, choices=[0, 1])
     parser.add_argument('--kappa', default=0, type=float, help='Laplacian reg weight')
     parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
-    parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT'])
+    parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT', 'GATv2'])
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -78,6 +79,10 @@ def main():
         model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     elif args.model == 'GAT':
         model = GAT(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+    elif args.model == 'GATv2':
+        model = GATv2(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+    else:
+        raise NotImplementedError('Invalid model.')
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)    
 
