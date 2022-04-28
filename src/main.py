@@ -36,7 +36,8 @@ def main():
     parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
     parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT', 'GATv2'])
     parser.add_argument('--num_hidden_features', default=16, type=int)
-
+    parser.add_argument('--early-stopping', default=0, type=int, choices=[0,1], help='whether or not to do early stopping')
+    
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
     parser.add_argument('--B', default=None, type=int)
@@ -91,9 +92,18 @@ def main():
     preg_loss_fn = PRegLoss(phi = args.phi, edge_index = data.edge_index, unmask_dict=unmask_dict, device=device)
     lap_loss_fn  = LapLoss(edge_index = data.edge_index, device=device)
     model.train()
+
+    if args.early_stopping:
+        if val_mask.sum() == 0:
+            raise ValueError('No validation set for early stopping.')
+
+        #Set the early stopping validation accuracy.
+        val_acc_prev = 0.0
+        model_prev = model
+
     for epoch in range(args.epochs):
         optimizer.zero_grad()
-        out = model(data.to(device)) #Z
+        out = model(data.to(device)) 
 
         #Calculate the loss, which is the CrossEntropy for the training, \mu and the P-reg loss as well as the confidence penalty term.
         #torch.maximum for tau > 0, C.2: Thresholding of P-reg
@@ -107,6 +117,30 @@ def main():
 
         #Take a step with the optimizer.
         optimizer.step()
+
+        #Check for early stopping every 200 epochs.
+        if ((epoch+1) % 200) == 0:
+            #Check for early stopping.
+            if args.early_stopping:
+                model.eval()
+                out = model(data)
+                pred = out.argmax(dim=1)
+                score = torch.softmax(out, dim=1)
+
+                #Check the validation accuracy.
+                val_acc = accuracy_score(y_true = data.y[val_mask].cpu(), y_pred = pred[val_mask].cpu())
+
+                #If the validation accuracy is better than the previous one, then continue training.
+                if val_acc > val_acc_prev:
+                    val_acc_prev = val_acc
+                    model_prev   = model
+                    print(f'Validation accuracy improved to {val_acc}.')
+                    model.train()
+                else:
+                    #Otherwise, stop training.
+                    print('Early stopping at epoch {}'.format(epoch))
+                    model = model_prev
+                    break
 
     with torch.no_grad():
         model.eval()
