@@ -35,6 +35,7 @@ def main():
     parser.add_argument('--kappa', default=0, type=float, help='Laplacian reg weight')
     parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
     parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT', 'GATv2'])
+    parser.add_argument('--num_hidden_features', default=16, type=int)
 
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
@@ -76,7 +77,7 @@ def main():
     print(f'Running on {device}.')
 
     if args.model == 'GCN':
-        model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
+        model = GCN(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes, num_hidden_features = args.num_hidden_features).to(device)
     elif args.model == 'GAT':
         model = GAT(num_node_features = dataset.num_node_features, num_classes = dataset.num_classes).to(device)
     elif args.model == 'GATv2':
@@ -99,7 +100,7 @@ def main():
         loss = loss_fn(out[train_mask], label_smoothing(data.y[train_mask], C, args.epsilon) ) \
              + args.mu * torch.maximum(torch.tensor([0]).to(device), preg_loss_fn(out) - args.tau)\
              + args.kappa * lap_loss_fn(out)\
-             - args.beta * conf_penalty(out)
+             + args.beta * conf_penalty(out)
 
         #Backpropagate 
         loss.backward()

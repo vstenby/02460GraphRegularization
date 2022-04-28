@@ -9,4 +9,4 @@ def conf_penalty(Z):
 
     P = torch.softmax(Z, dim=1)
 
-    return (-1.0) * (P * torch.log(P)).sum()
+    return (P * torch.log(P)).sum()
