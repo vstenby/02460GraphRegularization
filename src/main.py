@@ -35,9 +35,9 @@ def main():
     parser.add_argument('--kappa', default=0, type=float, help='Laplacian reg weight')
     parser.add_argument('--epsilon', default=0, type=float, help='Label smoothing parameter')
     parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT', 'GATv2'])
-    parser.add_argument('--num_hidden_features', default=16, type=int)
+    parser.add_argument('--num-hidden-features', default=16, type=int, help='specify the number of hidden features for the GCN')
     parser.add_argument('--early-stopping', default=0, type=int, choices=[0,1], help='whether or not to do early stopping')
-
+    
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
     parser.add_argument('--B', default=None, type=int)
