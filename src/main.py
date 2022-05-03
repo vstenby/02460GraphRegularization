@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--model', type=str, default='GCN', choices=['GCN', 'GAT', 'GATv2'])
     parser.add_argument('--num_hidden_features', default=16, type=int)
     parser.add_argument('--early-stopping', default=0, type=int, choices=[0,1], help='whether or not to do early stopping')
-    
+
     #Specify A and B arguments for the split values.
     parser.add_argument('--A', default=None, type=int)
     parser.add_argument('--B', default=None, type=int)
@@ -107,10 +107,10 @@ def main():
 
         #Calculate the loss, which is the CrossEntropy for the training, \mu and the P-reg loss as well as the confidence penalty term.
         #torch.maximum for tau > 0, C.2: Thresholding of P-reg
-        loss = loss_fn(out[train_mask], label_smoothing(data.y[train_mask], C, args.epsilon) ) \
+        loss = loss_fn(out[train_mask], label_smoothing(data.y[train_mask], C, args.epsilon)) \
              + args.mu * torch.maximum(torch.tensor([0]).to(device), preg_loss_fn(out) - args.tau)\
              + args.kappa * lap_loss_fn(out)\
-             + args.beta * conf_penalty(out)
+             + args.beta  * conf_penalty(out)
 
         #Backpropagate 
         loss.backward()
@@ -134,11 +134,9 @@ def main():
                 if val_acc > val_acc_prev:
                     val_acc_prev = val_acc
                     model_prev   = model
-                    print(f'Validation accuracy improved to {val_acc}.')
                     model.train()
                 else:
                     #Otherwise, stop training.
-                    print('Early stopping at epoch {}'.format(epoch))
                     model = model_prev
                     break
 
